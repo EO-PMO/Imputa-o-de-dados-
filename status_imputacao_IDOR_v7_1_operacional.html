@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Plano de Imputação — IDOR v7.1</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+:root{
+ --primary:#003DA5; --primary2:#002855; --bg:#F6F8FB; --card:#fff; --line:#e5e7eb;
+ --text:#0f172a; --muted:#475569; --ok:#16a34a;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
+header{background:linear-gradient(90deg,#003DA51a,#c6a27c1a);padding:18px;border-bottom:1px solid var(--line)}
+h1{margin:0;font-size:20px}
+.wrap{max-width:1100px;margin:16px auto;padding:0 16px;display:flex;flex-direction:column;gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+h2{margin:0 0 10px 0;font-size:15px;color:var(--primary2)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:8px;border-bottom:1px solid var(--line);text-align:left}
+th{background:#f8fafc}
+input,select{padding:6px 8px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;width:100%}
+button{padding:6px 10px;border-radius:8px;border:0;cursor:pointer;font-size:13px}
+.btn{background:var(--primary);color:#fff}
+.btn2{background:#e5e7eb}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.field{flex:1 1 160px}
+.badge{font-size:11px;color:var(--muted)}
+.progress{height:8px;background:#e5e7eb;border-radius:6px;overflow:hidden}
+.progress > div{height:100%;background:var(--ok)}
+@media(max-width:900px){
+ table,thead,tbody,th,td,tr{display:block}
+ th{display:none}
+ tr{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;padding:8px}
+ td{border:0;padding:4px 0}
+}
+</style>
+</head>
+<body>
+
+<header>
+<h1>Plano de Imputação — IDOR (v7.1)</h1>
+<div class="badge">Visão por pacientes • Planejamento semanal • Registro operacional</div>
+</header>
+
+<div class="wrap">
+
+<div class="card">
+<h2>Estudos</h2>
+<table>
+<thead>
+<tr>
+<th>Estudo</th><th>Total</th><th>Imputados</th><th>%</th><th>Prazo (sem)</th><th>Ações</th>
+</tr>
+</thead>
+<tbody id="tbody"></tbody>
+</table>
+</div>
+
+<div class="card">
+<h2>Registro semanal – Data Entry</h2>
+<div class="row">
+<div class="field">
+<label>Estudo</label>
+<select id="logStudy"></select>
+</div>
+<div class="field">
+<label>Semana</label>
+<input id="logWeek" type="number" min="1" value="1">
+</div>
+<div class="field">
+<label>Pacientes imputados</label>
+<input id="logPatients" type="number" min="0">
+</div>
+<div class="field">
+<label>Data Entry</label>
+<select id="logDE"><option>DE 1</option><option>DE 2</option></select>
+</div>
+</div>
+<div style="margin-top:10px">
+<button class="btn" onclick="logEntry()">Registrar</button>
+</div>
+<div id="logMsg" class="badge" style="margin-top:8px"></div>
+</div>
+
+</div>
+
+<script>
+let studies = JSON.parse(localStorage.getItem("idor_v71")) || [
+ {id:crypto.randomUUID(),name:"DeniLA",total:80,done:0,weeks:8,history:[]},
+ {id:crypto.randomUUID(),name:"Despatil",total:21,done:0,weeks:6,history:[]}
+];
+
+function save(){localStorage.setItem("idor_v71",JSON.stringify(studies));}
+
+function render(){
+ const tb=document.getElementById("tbody");
+ const sel=document.getElementById("logStudy");
+ tb.innerHTML=""; sel.innerHTML="";
+ studies.forEach(s=>{
+   const pct=s.total?Math.round((s.done/s.total)*100):0;
+   const tr=document.createElement("tr");
+   tr.innerHTML=`
+    <td><b>${s.name}</b></td>
+    <td>${s.total}</td>
+    <td>${s.done}</td>
+    <td>
+      ${pct}%
+      <div class="progress"><div style="width:${pct}%"></div></div>
+    </td>
+    <td>${s.weeks}</td>
+    <td><button class="btn2" onclick="editStudy('${s.id}')">Editar</button></td>`;
+   tb.appendChild(tr);
+
+   const opt=document.createElement("option");
+   opt.value=s.id; opt.textContent=s.name;
+   sel.appendChild(opt);
+ });
+ save();
+}
+
+function editStudy(id){
+ const s=studies.find(x=>x.id===id);
+ const name=prompt("Nome do estudo",s.name); if(name===null)return;
+ const tot=prompt("Pacientes totais",s.total); if(tot===null)return;
+ const wk=prompt("Prazo (semanas)",s.weeks); if(wk===null)return;
+ s.name=name; s.total=+tot; s.weeks=+wk;
+ render();
+}
+
+function logEntry(){
+ const id=document.getElementById("logStudy").value;
+ const wk=+document.getElementById("logWeek").value;
+ const pat=+document.getElementById("logPatients").value;
+ const de=document.getElementById("logDE").value;
+ if(!id||!pat) return alert("Preencha os campos");
+ const s=studies.find(x=>x.id===id);
+ s.history.push({week:wk,patients:pat,de});
+ s.done+=pat;
+ document.getElementById("logMsg").textContent=
+  `Registrado: ${pat} pacientes na semana ${wk} (${de})`;
+ render();
+}
+
+render();
+</script>
+
+</body>
+</html>
